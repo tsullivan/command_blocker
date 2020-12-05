@@ -2,6 +2,13 @@ import Head from 'next/head';
 import { useEffect, useRef } from 'react';
 import { useRenderer } from '../lib/use_renderer';
 
+/*
+ A Game by Henry
+
+ Q: Whatcha gonna do when you get outta jail?
+ A: I'm gonna have some lunch
+*/
+
 export default function Home() {
   const gameContainer = useRef(null);
 
@@ -9,31 +16,44 @@ export default function Home() {
     useRenderer(gameContainer);
   });
 
-
   return (
-    <div className="container">
+    <>
+      {}
       <Head>
         <title>Command Blocker</title>
         <link rel="icon" href="/favicon.ico" />
       </Head>
 
-      <main>
-        <h1 className="title">
-          COMMAND BLOCKER
-        </h1>
+      <div className="container">
+        <main>
+          <div ref={gameContainer}></div>
+        </main>
+      </div>
 
-        <div ref={gameContainer}></div>
+      <style jsx>{`
+        main {
+          flex: 1;
+          display: flex;
+          flex-direction: column;
+          justify-content: center;
+          align-items: center;
+        }
+      `}</style>
 
-        <p className="description">
-          Whatcha gonna do when you get outta jail?
-          <br />
-          I'm gonna have some lunch.
-        </p>
-      </main>
+      <style jsx global>{`
+        html,
+        body {
+          padding: 0;
+          margin: 0;
+          font-family: -apple-system, BlinkMacSystemFont, Segoe UI, Roboto,
+            Oxygen, Ubuntu, Cantarell, Fira Sans, Droid Sans, Helvetica Neue,
+            sans-serif;
+        }
 
-      <footer>
-        Game by Henry
-      </footer>
-    </div>
+        * {
+          box-sizing: border-box;
+        }
+      `}</style>
+    </>
   )
 }
