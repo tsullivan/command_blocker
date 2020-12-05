@@ -4,20 +4,14 @@ export default function Home() {
   return (
     <div className="container">
       <Head>
-        <title>Create Next App</title>
+        <title>Command Blocker</title>
         <link rel="icon" href="/favicon.ico" />
       </Head>
 
       <main>
         <h1 className="title">
-          Welcome, baby player
+          COMMAND BLOCKER
         </h1>
-
-        <p className="description">
-          Whatcha gonna do when you get outta jail?
-          <br/>
-          I'm gonna have some lunch.
-        </p>
 
         <div className="grid">
           <a href="#" className="card">
@@ -30,6 +24,12 @@ export default function Home() {
             <img src="/metal_guy_Body_D.png" width="100" height="100" />
           </a>
         </div>
+
+        <p className="description">
+          Whatcha gonna do when you get outta jail?
+          <br/>
+          I'm gonna have some lunch.
+        </p>
       </main>
 
       <footer>
