@@ -7,13 +7,21 @@
 
 import Head from "next/head";
 import { useEffect, useRef } from "react";
-import { useRenderer } from "../lib/renderer";
+import { Renderer, useRenderer } from "../lib/renderer";
 
 export default function Home() {
   const gameContainer = useRef(null);
 
   useEffect(() => {
-    useRenderer(gameContainer.current);
+    let renderer: Renderer;
+    useRenderer(gameContainer.current).then((r) => {
+      renderer = r;
+    });
+    return () => {
+      if (renderer) {
+        renderer.destroy();
+      }
+    };
   });
 
   return (

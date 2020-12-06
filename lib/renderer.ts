@@ -1,23 +1,23 @@
-import { MutableRefObject } from "react";
 import * as THREE from "three";
-import { BufferGeometryUtils as THBufferGeometryUtils } from "three/examples/jsm/utils/BufferGeometryUtils";
-import { FirstPersonControls as THFirstPersonControls } from "three/examples/jsm/controls/FirstPersonControls";
+// types
+import { OrbitControls as THOrbitControls } from "three/examples/jsm/controls/OrbitControls";
 import { ImprovedNoise as THImprovedNoise } from "three/examples/jsm/math/ImprovedNoise";
+import { BufferGeometryUtils as THBufferGeometryUtils } from "three/examples/jsm/utils/BufferGeometryUtils";
 
 export const renderFactory = (
   BufferGeometryUtils: typeof THBufferGeometryUtils,
-  FirstPersonControls: typeof THFirstPersonControls,
+  OrbitControls: typeof THOrbitControls,
   ImprovedNoise: typeof THImprovedNoise
 ) => {
-  return class RenderProvider {
+  return class Renderer {
     private camera: THREE.PerspectiveCamera;
-    private controls: any;
+    private controls: THOrbitControls;
     private scene: THREE.Scene;
     private renderer: THREE.WebGLRenderer;
-    private worldDepth = 200;
-    private worldWidth = 200;
-    private worldHalfWidth = 100;
-    private worldHalfDepth = 100;
+    private worldDepth = 300;
+    private worldWidth = 300;
+    private worldHalfWidth = 300 / 2;
+    private worldHalfDepth = 300 / 2;
     private data: number[];
     private clock: THREE.Clock;
 
@@ -29,9 +29,17 @@ export const renderFactory = (
       this.onWindowResize = this.onWindowResize.bind(this);
     }
 
+    public destroy() {
+      this.controls.dispose();
+      this.renderer.dispose();
+      this.clock.stop();
+    }
+
     public useRenderer() {
       this.init();
       this.animate();
+      console.log('loading game');
+      return this;
     }
 
     private init() {
@@ -41,8 +49,7 @@ export const renderFactory = (
         1,
         20000
       );
-      this.camera.position.y =
-        this.getY(this.worldHalfWidth, this.worldHalfDepth) * 100 + 100;
+      this.camera.position.y = 3000;
 
       this.scene = new THREE.Scene();
       this.scene.background = new THREE.Color(0xbfd1e5);
@@ -86,11 +93,11 @@ export const renderFactory = (
 
       for (let z = 0; z < this.worldDepth; z++) {
         for (let x = 0; x < this.worldWidth; x++) {
-          const h = this.getY(x, z);
+          const y = this.getY(x, z);
 
           matrix.makeTranslation(
             x * 100 - this.worldHalfWidth * 100,
-            h * 100,
+            y * 100,
             z * 100 - this.worldHalfDepth * 100
           );
 
@@ -101,19 +108,19 @@ export const renderFactory = (
 
           geometries.push(pyGeometry.clone().applyMatrix4(matrix));
 
-          if ((px !== h && px !== h + 1) || x === 0) {
+          if ((px !== y && px !== y + 1) || x === 0) {
             geometries.push(pxGeometry.clone().applyMatrix4(matrix));
           }
 
-          if ((nx !== h && nx !== h + 1) || x === this.worldWidth - 1) {
+          if ((nx !== y && nx !== y + 1) || x === this.worldWidth - 1) {
             geometries.push(nxGeometry.clone().applyMatrix4(matrix));
           }
 
-          if ((pz !== h && pz !== h + 1) || z === this.worldDepth - 1) {
+          if ((pz !== y && pz !== y + 1) || z === this.worldDepth - 1) {
             geometries.push(pzGeometry.clone().applyMatrix4(matrix));
           }
 
-          if ((nz !== h && nz !== h + 1) || z === 0) {
+          if ((nz !== y && nz !== y + 1) || z === 0) {
             geometries.push(nzGeometry.clone().applyMatrix4(matrix));
           }
         }
@@ -145,16 +152,10 @@ export const renderFactory = (
       this.renderer.setSize(window.innerWidth, window.innerHeight);
       this.container.appendChild(this.renderer.domElement);
 
-      this.controls = new FirstPersonControls(
+      this.controls = new OrbitControls(
         this.camera,
         this.renderer.domElement
       );
-
-      this.controls.movementSpeed = 1000;
-      this.controls.lookSpeed = 0.125;
-      this.controls.lookVertical = true;
-
-      //
 
       window.addEventListener("resize", this.onWindowResize, false);
     }
@@ -162,17 +163,14 @@ export const renderFactory = (
     private onWindowResize() {
       this.camera.aspect = window.innerWidth / window.innerHeight;
       this.camera.updateProjectionMatrix();
-
       this.renderer.setSize(window.innerWidth, window.innerHeight);
-
-      this.controls.handleResize();
     }
 
     private generateHeight(width: number, height: number) {
-      const data = [],
-        perlin = new ImprovedNoise(),
-        size = width * height,
-        z = Math.random() * 100;
+      const data = [];
+      const perlin = new ImprovedNoise();
+      const size = width * height;
+      const z = Math.random() * 100;
 
       let quality = 2;
 
@@ -195,37 +193,34 @@ export const renderFactory = (
       return (this.data[x + z * this.worldWidth] * 0.2) | 0;
     }
 
-    //
-
     private animate() {
       requestAnimationFrame(this.animate);
-
       this.render();
     }
 
     private render() {
-      this.controls.update(this.clock.getDelta());
       this.renderer.render(this.scene, this.camera);
     }
   };
 };
 
-export const useRenderer = (container: Element) => {
-  // load imgs
+export type Renderer = InstanceType<ReturnType<typeof renderFactory>>;
 
-  Promise.all([
+export const useRenderer = (container: Element): Promise<Renderer>  => {
+  // TODO preload assets
+  return Promise.all([
     import("three/examples/jsm/utils/BufferGeometryUtils"),
-    import("three/examples/jsm/controls/FirstPersonControls"),
+    import("three/examples/jsm/controls/OrbitControls"),
     import("three/examples/jsm/math/ImprovedNoise"),
   ]).then(
-    ([{ BufferGeometryUtils }, { FirstPersonControls }, { ImprovedNoise }]) => {
-      const RenderProvider = renderFactory(
+    ([{ BufferGeometryUtils }, { OrbitControls }, { ImprovedNoise }]) => {
+      const Renderer = renderFactory(
         BufferGeometryUtils,
-        FirstPersonControls,
+        OrbitControls,
         ImprovedNoise
       );
-      const r = new RenderProvider(container);
-      // r.useRenderer();
+      const r = new Renderer(container);
+      return r.useRenderer();
     }
   );
 };
