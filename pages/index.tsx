@@ -1,6 +1,6 @@
-import Head from 'next/head';
-import { useEffect, useRef } from 'react';
-import { useRenderer } from '../lib/use_renderer';
+import Head from "next/head";
+import { useEffect, useRef } from "react";
+import { renderFactory } from "../lib/renderer";
 
 /*
  A Game by Henry
@@ -13,7 +13,25 @@ export default function Home() {
   const gameContainer = useRef(null);
 
   useEffect(() => {
-    useRenderer(gameContainer);
+    Promise.all([
+      import("three/examples/jsm/utils/BufferGeometryUtils"),
+      import("three/examples/jsm/controls/FirstPersonControls"),
+      import("three/examples/jsm/math/ImprovedNoise"),
+    ]).then(
+      ([
+        { BufferGeometryUtils },
+        { FirstPersonControls },
+        { ImprovedNoise },
+      ]) => {
+        const RenderProvider = renderFactory(
+          BufferGeometryUtils,
+          FirstPersonControls,
+          ImprovedNoise
+        );
+        const r = new RenderProvider(gameContainer);
+        r.useRenderer();
+      }
+    );
   });
 
   return (
@@ -55,5 +73,5 @@ export default function Home() {
         }
       `}</style>
     </>
-  )
+  );
 }
