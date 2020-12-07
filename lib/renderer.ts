@@ -3,27 +3,33 @@ import * as THREE from "three";
 import { OrbitControls as THOrbitControls } from "three/examples/jsm/controls/OrbitControls";
 import { ImprovedNoise as THImprovedNoise } from "three/examples/jsm/math/ImprovedNoise";
 import { BufferGeometryUtils as THBufferGeometryUtils } from "three/examples/jsm/utils/BufferGeometryUtils";
+import {
+  Collada,
+  ColladaLoader as THColladaLoader,
+} from "three/examples/jsm/loaders/ColladaLoader";
 
 export const renderFactory = (
   BufferGeometryUtils: typeof THBufferGeometryUtils,
   OrbitControls: typeof THOrbitControls,
-  ImprovedNoise: typeof THImprovedNoise
+  ImprovedNoise: typeof THImprovedNoise,
+  ColladaLoader: typeof THColladaLoader
 ) => {
   return class Renderer {
     private camera: THREE.PerspectiveCamera;
     private controls: THOrbitControls;
     private scene: THREE.Scene;
     private renderer: THREE.WebGLRenderer;
+    private loader: THColladaLoader;
     private worldDepth = 300;
     private worldWidth = 300;
     private worldHalfWidth = 300 / 2;
     private worldHalfDepth = 300 / 2;
     private data: number[];
     private clock: THREE.Clock;
+    private mixer?: THREE.AnimationMixer;
 
     constructor(private container: Element) {
       this.data = this.generateHeight(this.worldWidth, this.worldDepth);
-      this.clock = new THREE.Clock();
 
       this.animate = this.animate.bind(this);
       this.onWindowResize = this.onWindowResize.bind(this);
@@ -38,126 +44,169 @@ export const renderFactory = (
     public useRenderer() {
       this.init();
       this.animate();
-      console.log('loading game');
       return this;
     }
 
     private init() {
-      this.camera = new THREE.PerspectiveCamera(
-        60,
-        window.innerWidth / window.innerHeight,
-        1,
-        20000
-      );
-      this.camera.position.y = 3000;
+      this.clock = new THREE.Clock();
 
+      // scene
       this.scene = new THREE.Scene();
       this.scene.background = new THREE.Color(0xbfd1e5);
 
-      // sides
+      // camera
+      const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 1, 20000);
+      camera.position.y = this.getY(camera.position.x, camera.position.z) * 100 + 100;
 
-      const matrix = new THREE.Matrix4();
+      this.camera = camera;
 
-      const pxGeometry = new THREE.PlaneBufferGeometry(100, 100);
-      (pxGeometry.attributes.uv.array as Array<number>)[1] = 0.5;
-      (pxGeometry.attributes.uv.array as Array<number>)[3] = 0.5;
-      pxGeometry.rotateY(Math.PI / 2);
-      pxGeometry.translate(50, 0, 0);
+      // objects
+      this.loader = new ColladaLoader();
+      this.createLandscape().then(() => {
+        this.createLighting();
+        this.createYoda();
+      });
 
-      const nxGeometry = new THREE.PlaneBufferGeometry(100, 100);
-      (nxGeometry.attributes.uv.array as Array<number>)[1] = 0.5;
-      (nxGeometry.attributes.uv.array as Array<number>)[3] = 0.5;
-      nxGeometry.rotateY(-Math.PI / 2);
-      nxGeometry.translate(-50, 0, 0);
+      // 
 
-      const pyGeometry = new THREE.PlaneBufferGeometry(100, 100);
-      (pyGeometry.attributes.uv.array as Array<number>)[5] = 0.5;
-      (pyGeometry.attributes.uv.array as Array<number>)[7] = 0.5;
-      pyGeometry.rotateX(-Math.PI / 2);
-      pyGeometry.translate(0, 50, 0);
+      const renderer = new THREE.WebGLRenderer({ antialias: true });
+      renderer.setPixelRatio(window.devicePixelRatio);
+      renderer.setSize(window.innerWidth, window.innerHeight);
+      this.container.appendChild(renderer.domElement);
 
-      const pzGeometry = new THREE.PlaneBufferGeometry(100, 100);
-      (pzGeometry.attributes.uv.array as Array<number>)[1] = 0.5;
-      (pzGeometry.attributes.uv.array as Array<number>)[3] = 0.5;
-      pzGeometry.translate(0, 0, 50);
+      this.renderer = renderer;
 
-      const nzGeometry = new THREE.PlaneBufferGeometry(100, 100);
-      (nzGeometry.attributes.uv.array as Array<number>)[1] = 0.5;
-      (nzGeometry.attributes.uv.array as Array<number>)[3] = 0.5;
-      nzGeometry.rotateY(Math.PI);
-      nzGeometry.translate(0, 0, -50);
+      // 
 
-      //
+      const controls = new OrbitControls(this.camera, this.renderer.domElement);
+      controls.screenSpacePanning = true;
+      controls.target.set(0, 2, 0);
+      controls.update();
 
-      const geometries = [];
+      this.controls = controls;
 
-      for (let z = 0; z < this.worldDepth; z++) {
-        for (let x = 0; x < this.worldWidth; x++) {
-          const y = this.getY(x, z);
+      window.addEventListener("resize", this.onWindowResize, false);
+    }
 
-          matrix.makeTranslation(
-            x * 100 - this.worldHalfWidth * 100,
-            y * 100,
-            z * 100 - this.worldHalfDepth * 100
-          );
+    private createYoda() {
+      // baby yoda
+      this.loader.load(
+        "/yoda/babyoda_d1.dae",
+        ({ animations, scene: avatar }: Collada) => {
+          avatar.traverse((node: THREE.SkinnedMesh) => {
+            if (node.isSkinnedMesh) {
+              node.frustumCulled = false;
+            }
+          });
 
-          const px = this.getY(x + 1, z);
-          const nx = this.getY(x - 1, z);
-          const pz = this.getY(x, z + 1);
-          const nz = this.getY(x, z - 1);
+          avatar.position.y = this.getY(avatar.position.x, avatar.position.z);
 
-          geometries.push(pyGeometry.clone().applyMatrix4(matrix));
+          this.mixer = new THREE.AnimationMixer(avatar);
+          this.mixer.clipAction(animations[0]).play();
 
-          if ((px !== y && px !== y + 1) || x === 0) {
-            geometries.push(pxGeometry.clone().applyMatrix4(matrix));
-          }
+          this.scene.add(avatar);
+        }
+      );
+    }
 
-          if ((nx !== y && nx !== y + 1) || x === this.worldWidth - 1) {
-            geometries.push(nxGeometry.clone().applyMatrix4(matrix));
-          }
+    private createLandscape() {
+      return new Promise((resolve) => {
+        // minecraft blocks: sides
+        const matrix = new THREE.Matrix4();
 
-          if ((pz !== y && pz !== y + 1) || z === this.worldDepth - 1) {
-            geometries.push(pzGeometry.clone().applyMatrix4(matrix));
-          }
+        const pxGeometry = new THREE.PlaneBufferGeometry(100, 100);
+        (pxGeometry.attributes.uv.array as Array<number>)[1] = 0.5;
+        (pxGeometry.attributes.uv.array as Array<number>)[3] = 0.5;
+        pxGeometry.rotateY(Math.PI / 2);
+        pxGeometry.translate(50, 0, 0);
 
-          if ((nz !== y && nz !== y + 1) || z === 0) {
-            geometries.push(nzGeometry.clone().applyMatrix4(matrix));
+        const nxGeometry = new THREE.PlaneBufferGeometry(100, 100);
+        (nxGeometry.attributes.uv.array as Array<number>)[1] = 0.5;
+        (nxGeometry.attributes.uv.array as Array<number>)[3] = 0.5;
+        nxGeometry.rotateY(-Math.PI / 2);
+        nxGeometry.translate(-50, 0, 0);
+
+        const pyGeometry = new THREE.PlaneBufferGeometry(100, 100);
+        (pyGeometry.attributes.uv.array as Array<number>)[5] = 0.5;
+        (pyGeometry.attributes.uv.array as Array<number>)[7] = 0.5;
+        pyGeometry.rotateX(-Math.PI / 2);
+        pyGeometry.translate(0, 50, 0);
+
+        const pzGeometry = new THREE.PlaneBufferGeometry(100, 100);
+        (pzGeometry.attributes.uv.array as Array<number>)[1] = 0.5;
+        (pzGeometry.attributes.uv.array as Array<number>)[3] = 0.5;
+        pzGeometry.translate(0, 0, 50);
+
+        const nzGeometry = new THREE.PlaneBufferGeometry(100, 100);
+        (nzGeometry.attributes.uv.array as Array<number>)[1] = 0.5;
+        (nzGeometry.attributes.uv.array as Array<number>)[3] = 0.5;
+        nzGeometry.rotateY(Math.PI);
+        nzGeometry.translate(0, 0, -50);
+
+        // minecraft blocks: landscape
+        const geometries = [];
+
+        for (let z = 0; z < this.worldDepth; z++) {
+          for (let x = 0; x < this.worldWidth; x++) {
+            const y = this.getY(x, z);
+
+            matrix.makeTranslation(
+              x * 100 - this.worldHalfWidth * 100,
+              y * 100,
+              z * 100 - this.worldHalfDepth * 100
+            );
+
+            const px = this.getY(x + 1, z);
+            const nx = this.getY(x - 1, z);
+            const pz = this.getY(x, z + 1);
+            const nz = this.getY(x, z - 1);
+
+            geometries.push(pyGeometry.clone().applyMatrix4(matrix));
+
+            if ((px !== y && px !== y + 1) || x === 0) {
+              geometries.push(pxGeometry.clone().applyMatrix4(matrix));
+            }
+
+            if ((nx !== y && nx !== y + 1) || x === this.worldWidth - 1) {
+              geometries.push(nxGeometry.clone().applyMatrix4(matrix));
+            }
+
+            if ((pz !== y && pz !== y + 1) || z === this.worldDepth - 1) {
+              geometries.push(pzGeometry.clone().applyMatrix4(matrix));
+            }
+
+            if ((nz !== y && nz !== y + 1) || z === 0) {
+              geometries.push(nzGeometry.clone().applyMatrix4(matrix));
+            }
           }
         }
-      }
 
-      const geometry = BufferGeometryUtils.mergeBufferGeometries(geometries);
-      geometry.computeBoundingSphere();
+        const geometry = BufferGeometryUtils.mergeBufferGeometries(geometries);
+        geometry.computeBoundingSphere();
 
-      const texture = new THREE.TextureLoader().load(
-        "textures/minecraft/atlas.png"
-      );
-      texture.magFilter = THREE.NearestFilter;
+        const texture = new THREE.TextureLoader().load(
+          "textures/minecraft/atlas.png"
+        );
+        texture.magFilter = THREE.NearestFilter;
 
-      const mesh = new THREE.Mesh(
-        geometry,
-        new THREE.MeshLambertMaterial({ map: texture, side: THREE.DoubleSide })
-      );
-      this.scene.add(mesh);
+        const mesh = new THREE.Mesh(
+          geometry,
+          new THREE.MeshLambertMaterial({ map: texture, side: THREE.DoubleSide })
+        );
+        this.scene.add(mesh);
 
+        resolve(mesh);
+      });
+
+    }
+
+    private createLighting() {
       const ambientLight = new THREE.AmbientLight(0xcccccc);
       this.scene.add(ambientLight);
 
       const directionalLight = new THREE.DirectionalLight(0xffffff, 2);
       directionalLight.position.set(1, 1, 0.5).normalize();
       this.scene.add(directionalLight);
-
-      this.renderer = new THREE.WebGLRenderer({ antialias: true });
-      this.renderer.setPixelRatio(window.devicePixelRatio);
-      this.renderer.setSize(window.innerWidth, window.innerHeight);
-      this.container.appendChild(this.renderer.domElement);
-
-      this.controls = new OrbitControls(
-        this.camera,
-        this.renderer.domElement
-      );
-
-      window.addEventListener("resize", this.onWindowResize, false);
     }
 
     private onWindowResize() {
@@ -199,6 +248,12 @@ export const renderFactory = (
     }
 
     private render() {
+      const delta = this.clock.getDelta();
+
+      if (this.mixer !== undefined) {
+        this.mixer.update(delta);
+      }
+
       this.renderer.render(this.scene, this.camera);
     }
   };
@@ -206,18 +261,25 @@ export const renderFactory = (
 
 export type Renderer = InstanceType<ReturnType<typeof renderFactory>>;
 
-export const useRenderer = (container: Element): Promise<Renderer>  => {
+export const useRenderer = (container: Element): Promise<Renderer> => {
   // TODO preload assets
   return Promise.all([
     import("three/examples/jsm/utils/BufferGeometryUtils"),
     import("three/examples/jsm/controls/OrbitControls"),
     import("three/examples/jsm/math/ImprovedNoise"),
+    import("three/examples/jsm/loaders/ColladaLoader"),
   ]).then(
-    ([{ BufferGeometryUtils }, { OrbitControls }, { ImprovedNoise }]) => {
+    ([
+      { BufferGeometryUtils },
+      { OrbitControls },
+      { ImprovedNoise },
+      { ColladaLoader },
+    ]) => {
       const Renderer = renderFactory(
         BufferGeometryUtils,
         OrbitControls,
-        ImprovedNoise
+        ImprovedNoise,
+        ColladaLoader
       );
       const r = new Renderer(container);
       return r.useRenderer();
