@@ -23,6 +23,8 @@ export class Renderer {
     const renderer = new THREE.WebGLRenderer({ antialias: true });
     renderer.setPixelRatio(window.devicePixelRatio);
     renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.shadowMap.enabled = true;
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     this.container.appendChild(renderer.domElement);
     this.renderer = renderer;
 
@@ -31,14 +33,15 @@ export class Renderer {
     this.scene.add(ambientLight);
 
     const directionalLight = new THREE.DirectionalLight(0xffffff, 2);
-    directionalLight.position.set(1, 1, 0.5).normalize();
+    directionalLight.position.set(1, 1000, 0.5).normalize();
+    directionalLight.castShadow = true;
     this.scene.add(directionalLight);
 
     // camera
     const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 1, 50000);
     camera.position.x = 50;
-    camera.position.y = this.landscape.getY(WORLD_WIDTH / 2, WORLD_DEPTH / 2) * CUBE_SIZE + CUBE_SIZE * 2;
     camera.position.z = -48;
+    camera.position.y = this.landscape.getY(0, 0) * CUBE_SIZE + CUBE_SIZE * 2;
     this.camera = camera;
 
     //
@@ -54,6 +57,8 @@ export class Renderer {
 
     const yoda = await this.yoda.getAvatar();
     yoda.position.y = this.landscape.getY(WORLD_WIDTH / 2, WORLD_DEPTH / 2) * CUBE_SIZE + CUBE_SIZE / 2;
+    yoda.castShadow = true;
+    yoda.receiveShadow = false;
     this.scene.add(yoda);
 
     const { OrbitControls } = await import("three/examples/jsm/controls/OrbitControls");

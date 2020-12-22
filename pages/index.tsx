@@ -7,7 +7,7 @@
 
 import Head from "next/head";
 import { useEffect, useRef } from "react";
-import { Renderer, useRenderer } from "../lib/renderer";
+import { Renderer, useRenderer } from "../render";
 
 export default function Home() {
   const gameContainer = useRef(null);

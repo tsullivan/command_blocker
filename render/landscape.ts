@@ -128,6 +128,7 @@ export class Landscape {
       geometry,
       new THREE.MeshLambertMaterial({ map: texture, side: THREE.DoubleSide })
     );
+    mesh.receiveShadow = true;
 
     return mesh;
   }
