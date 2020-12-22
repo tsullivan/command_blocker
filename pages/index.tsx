@@ -21,6 +21,7 @@ export default function Home() {
       if (renderer) {
         renderer.destroy();
       }
+      gameContainer.current.removeChild(gameContainer.current.firstChild);
     };
   });
 
