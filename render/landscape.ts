@@ -42,6 +42,18 @@ export class Landscape {
     return (this.data[x + z * this.worldWidth] * 0.25) | 0;
   }
 
+  public getMaxX() {
+    return this.worldWidth * this.cubeSize - (this.cubeSize * 2);
+  }
+
+  public getMaxZ() {
+    return this.worldDepth * this.cubeSize - (this.cubeSize * 2);
+  }
+
+  public getMinCameraY(x: number, z: number) {
+    return this.getY(x, z) * (this.cubeSize * 2)
+  }
+
   public async getObject(): Promise<THREE.Object3D> {
     await this.generateHeight();
 
@@ -96,22 +108,10 @@ export class Landscape {
         const nz = this.getY(x, z - 1);
 
         geometries.push(pyGeometry.clone().applyMatrix4(matrix));
-
-        if ((px !== y && px !== y + 1) || x === 0) {
-          geometries.push(pxGeometry.clone().applyMatrix4(matrix));
-        }
-
-        if ((nx !== y && nx !== y + 1) || x === this.worldWidth - 1) {
-          geometries.push(nxGeometry.clone().applyMatrix4(matrix));
-        }
-
-        if ((pz !== y && pz !== y + 1) || z === this.worldDepth - 1) {
-          geometries.push(pzGeometry.clone().applyMatrix4(matrix));
-        }
-
-        if ((nz !== y && nz !== y + 1) || z === 0) {
-          geometries.push(nzGeometry.clone().applyMatrix4(matrix));
-        }
+        geometries.push(pxGeometry.clone().applyMatrix4(matrix));
+        geometries.push(nxGeometry.clone().applyMatrix4(matrix));
+        geometries.push(pzGeometry.clone().applyMatrix4(matrix));
+        geometries.push(nzGeometry.clone().applyMatrix4(matrix));
       }
     }
 
