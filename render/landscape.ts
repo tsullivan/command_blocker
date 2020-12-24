@@ -1,4 +1,4 @@
-import * as THREE from "three";
+import * as THREE from 'three';
 
 export class Landscape {
   private worldHalfWidth: number;
@@ -16,7 +16,7 @@ export class Landscape {
 
   private async generateHeight(): Promise<void> {
     const data = [];
-    const { ImprovedNoise } = await import("three/examples/jsm/math/ImprovedNoise");
+    const { ImprovedNoise } = await import('three/examples/jsm/math/ImprovedNoise');
     const perlin = new ImprovedNoise();
     const size = this.worldWidth * this.worldDepth;
     const z = Math.random() * this.cubeSize;
@@ -38,20 +38,20 @@ export class Landscape {
     this.data = data;
   }
 
-  public getY(x: number, z: number) {
+  public getY(x: number, z: number): number {
     return (this.data[x + z * this.worldWidth] * 0.25) | 0;
   }
 
-  public getMaxX() {
-    return this.worldWidth * this.cubeSize - (this.cubeSize * 2);
+  public getMaxX(): number {
+    return this.worldWidth * this.cubeSize - this.cubeSize * 2;
   }
 
-  public getMaxZ() {
-    return this.worldDepth * this.cubeSize - (this.cubeSize * 2);
+  public getMaxZ(): number {
+    return this.worldDepth * this.cubeSize - this.cubeSize * 2;
   }
 
-  public getMinCameraY(x: number, z: number) {
-    return this.getY(x, z) * (this.cubeSize * 2)
+  public getMinCameraY(x: number, z: number): number {
+    return this.getY(x, z) * (this.cubeSize * 2);
   }
 
   public async getObject(): Promise<THREE.Object3D> {
@@ -102,11 +102,6 @@ export class Landscape {
           z * this.cubeSize - this.worldHalfDepth * this.cubeSize
         );
 
-        const px = this.getY(x + 1, z);
-        const nx = this.getY(x - 1, z);
-        const pz = this.getY(x, z + 1);
-        const nz = this.getY(x, z - 1);
-
         geometries.push(pyGeometry.clone().applyMatrix4(matrix));
         geometries.push(pxGeometry.clone().applyMatrix4(matrix));
         geometries.push(nxGeometry.clone().applyMatrix4(matrix));
@@ -115,13 +110,11 @@ export class Landscape {
       }
     }
 
-    const { BufferGeometryUtils } = await import("three/examples/jsm/utils/BufferGeometryUtils");
+    const { BufferGeometryUtils } = await import('three/examples/jsm/utils/BufferGeometryUtils');
     const geometry = BufferGeometryUtils.mergeBufferGeometries(geometries);
     geometry.computeBoundingSphere();
 
-    const texture = new THREE.TextureLoader().load(
-      "textures/minecraft/atlas.png"
-    );
+    const texture = new THREE.TextureLoader().load('textures/minecraft/atlas.png');
     texture.magFilter = THREE.NearestFilter;
 
     const mesh = new THREE.Mesh(
