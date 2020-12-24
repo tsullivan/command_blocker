@@ -1,11 +1,18 @@
 import * as THREE from 'three';
 import type { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
+import { Sandbox } from '../sandbox';
 import { Landscape } from './landscape';
 import { Yoda } from './yoda';
+
+export type UseSceneFn = (useScene: (scene: THREE.Scene) => void) => void;
 
 const WORLD_WIDTH = 70;
 const WORLD_DEPTH = 50;
 const CUBE_SIZE = 4;
+
+const CAMERA_FOV = 60;
+const CAMERA_NEAR = 1;
+const CAMERA_FAR = 500;
 
 const cameraPosition = new THREE.Vector3(30, 44, 25);
 
@@ -14,15 +21,16 @@ export class Renderer {
   private scene = new THREE.Scene();
   private renderer = new THREE.WebGLRenderer({ antialias: true });
   private camera = new THREE.PerspectiveCamera(
-    60,
-    window.innerWidth / window.innerHeight,
-    1,
-    50000
+    CAMERA_FOV,
+    window.innerWidth / window.innerHeight, // Camera aspect
+    CAMERA_NEAR,
+    CAMERA_FAR
   );
   private landscape = new Landscape(WORLD_WIDTH, WORLD_DEPTH, CUBE_SIZE);
   private yoda = new Yoda();
   private pressed: string[] = [];
   private controls?: OrbitControls;
+  private sandbox: Sandbox;
 
   constructor(private container: Element) {
     const { renderer, camera } = this;
@@ -30,23 +38,21 @@ export class Renderer {
     // renderer
     renderer.setPixelRatio(window.devicePixelRatio);
     renderer.setSize(window.innerWidth, window.innerHeight);
-    renderer.shadowMap.enabled = true;
-    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     this.container.appendChild(renderer.domElement);
 
     // lighting
     const ambientLight = new THREE.AmbientLight(0xcccccc);
     this.scene.add(ambientLight);
 
-    const directionalLight = new THREE.DirectionalLight(0xffffff, 2);
-    directionalLight.position.set(1, 1000, 0.5).normalize();
-    directionalLight.castShadow = true;
-    this.scene.add(directionalLight);
-
     // camera
     camera.position.x = cameraPosition.x;
     camera.position.y = cameraPosition.y;
     camera.position.z = cameraPosition.z;
+
+    // add extras
+    this.sandbox = new Sandbox((cb) => {
+      cb(this.scene);
+    });
 
     // done
     this.addListeners();
@@ -69,8 +75,6 @@ export class Renderer {
     const yodaAvatar = this.yoda.avatar;
     yodaAvatar.position.y =
       this.landscape.getY(WORLD_WIDTH / 2, WORLD_DEPTH / 2) * CUBE_SIZE + CUBE_SIZE / 2;
-    yodaAvatar.castShadow = true;
-    yodaAvatar.receiveShadow = false;
     this.scene.add(yodaAvatar);
 
     const { OrbitControls } = await import('three/examples/jsm/controls/OrbitControls');
@@ -93,8 +97,6 @@ export class Renderer {
   }
 
   private animate() {
-    requestAnimationFrame(this.animate);
-
     if (this.yoda.avatar) {
       this.camera.lookAt(this.yoda.avatar.position); // camera always looking at baby yoda
 
@@ -104,10 +106,13 @@ export class Renderer {
     }
 
     this.yoda.animate();
+    this.sandbox.animate(this.clock.getElapsedTime());
 
     this.containCamera();
 
     this.renderer.render(this.scene, this.camera);
+
+    requestAnimationFrame(this.animate);
   }
 
   public destroy(): void {

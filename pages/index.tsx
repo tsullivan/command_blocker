@@ -5,9 +5,8 @@
  A Game by Henry
 */
 
-import React from 'react';
 import Head from 'next/head';
-import { useEffect, useRef } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { Renderer, useRenderer } from '../render';
 
 export default function Home(): React.ReactElement {

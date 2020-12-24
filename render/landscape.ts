@@ -1,41 +1,18 @@
 import * as THREE from 'three';
+import { landscapeData } from './landscape_data';
 
 export class Landscape {
   private worldHalfWidth: number;
   private worldHalfDepth: number;
   private cubeSize: number;
   private cubeHalfSize: number;
-  private data: number[] = [];
+  private data = landscapeData;
 
   constructor(private worldWidth: number, private worldDepth: number, cubeSize: number) {
     this.worldHalfWidth = worldWidth / 2;
     this.worldHalfDepth = worldDepth / 2;
     this.cubeSize = cubeSize;
     this.cubeHalfSize = cubeSize / 2;
-  }
-
-  private async generateHeight(): Promise<void> {
-    const data = [];
-    const { ImprovedNoise } = await import('three/examples/jsm/math/ImprovedNoise');
-    const perlin = new ImprovedNoise();
-    const size = this.worldWidth * this.worldDepth;
-    const z = Math.random() * this.cubeSize;
-
-    let quality = 2;
-
-    for (let j = 0; j < 4; j++) {
-      if (j === 0) for (let i = 0; i < size; i++) data[i] = 0;
-
-      for (let i = 0; i < size; i++) {
-        const x = i % this.worldWidth,
-          y = (i / this.worldWidth) | 0;
-        data[i] += perlin.noise(x / quality, y / quality, z) * quality;
-      }
-
-      quality *= 4;
-    }
-
-    this.data = data;
   }
 
   public getY(x: number, z: number): number {
@@ -55,8 +32,6 @@ export class Landscape {
   }
 
   public async getObject(): Promise<THREE.Object3D> {
-    await this.generateHeight();
-
     // minecraft blocks: sides
     const pxGeometry = new THREE.PlaneBufferGeometry(this.cubeSize, this.cubeSize);
     (pxGeometry.attributes.uv.array as Array<number>)[1] = 0.5;
@@ -121,7 +96,6 @@ export class Landscape {
       geometry,
       new THREE.MeshLambertMaterial({ map: texture, side: THREE.DoubleSide })
     );
-    mesh.receiveShadow = true;
 
     return mesh;
   }
