@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { Landscape } from './landscape';
 import { getSpaceObjects } from './space';
 import { Yoda } from './yoda';
 
@@ -7,7 +8,7 @@ export class Sandbox {
   public animate: (camera: THREE.Camera, time: number) => void;
   public destroy: () => void;
 
-  constructor(scene: THREE.Scene) {
+  constructor(scene: THREE.Scene, landscape: Landscape) {
     // light
     {
       const sunLightColor = 0xffffff;
@@ -22,28 +23,34 @@ export class Sandbox {
     // player character
     const yoda = new Yoda();
 
-    // Animate
-    this.animate = (camera: THREE.Camera, time: number) => {
-      yoda.animate();
-      yoda.avatar.position.y = Math.abs(Math.sin(time * 2) * 4) - 2;
-      yoda.avatar.rotation.y = time * 10;
-
-      spaceObjects.forEach((mesh, ndx) => {
-        const speed = 1 + ndx * 0.1;
-        const rot = time * speed;
-        mesh.rotation.y = rot;
-      });
-    };
-
     // Init
     this.init = async (scene: THREE.Scene): Promise<void> => {
       if (!yoda.avatar) {
         await yoda.createYoda();
       }
 
-      const yodaAvatar = yoda.avatar;
-      yodaAvatar.position.y = 0;
-      scene.add(yodaAvatar);
+      scene.add(yoda.avatar);
+    };
+
+    // Animate
+    this.animate = (camera: THREE.Camera, time: number) => {
+      yoda.animate();
+      yoda.avatar.rotation.y = time * 10;
+
+      {
+        const floor = landscape.getY(landscape.WORLD_WIDTH / 2, landscape.WORLD_DEPTH / 2) * landscape.CUBE_SIZE +
+          landscape.CUBE_SIZE / 2;
+        const [solarSystem] = spaceObjects;
+
+        yoda.avatar.position.y = floor;
+        solarSystem.position.y = floor + 20;
+      }
+
+      spaceObjects.forEach((mesh, ndx) => {
+        const speed = 1 + ndx * 0.1;
+        const rot = time * speed;
+        mesh.rotation.y = rot;
+      });
     };
 
     // Cleanup

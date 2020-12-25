@@ -11,7 +11,7 @@ export const getSpaceObjects = (scene: THREE.Scene): THREE.Object3D[] => {
   );
 
   const solarSystem = new THREE.Object3D();
-  solarSystem.position.y = 10;
+  solarSystem.position.y = 300;
 
   // sun
   const sunMaterial = new THREE.MeshPhongMaterial({ emissive: 0xffff00 });
@@ -20,13 +20,13 @@ export const getSpaceObjects = (scene: THREE.Scene): THREE.Object3D[] => {
 
   // earth
   const earthOrbit = new THREE.Object3D();
-  earthOrbit.position.x = 10;
+  earthOrbit.position.x = 15;
   const earthMaterial = new THREE.MeshPhongMaterial({ color: 0x2233ff, emissive: 0x112244 });
   const earthMesh = new THREE.Mesh(celestialSphereGeometry, earthMaterial);
 
   // moon
   const moonOrbit = new THREE.Object3D();
-  moonOrbit.position.x = 2;
+  moonOrbit.position.x = 3;
   const moonMaterial = new THREE.MeshPhongMaterial({ color: 0x888888, emissive: 0x222222 });
   const moonMesh = new THREE.Mesh(celestialSphereGeometry, moonMaterial);
   moonMesh.scale.set(0.5, 0.5, 0.5);

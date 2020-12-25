@@ -5,8 +5,8 @@ import { Sandbox } from './sandbox';
 
 export type UseSceneFn = (useScene: (scene: THREE.Scene) => void) => void;
 
-export const WORLD_WIDTH = 70;
-export const WORLD_DEPTH = 50;
+export const WORLD_WIDTH = 200;
+export const WORLD_DEPTH = 200;
 export const CUBE_SIZE = 4;
 
 export class Renderer {
@@ -44,7 +44,7 @@ export class Renderer {
     camera.position.z = cameraPosition.z;
 
     // add extras
-    this.sandbox = new Sandbox(this.scene);
+    this.sandbox = new Sandbox(this.scene, this.landscape);
 
     // done
     this.addListeners();

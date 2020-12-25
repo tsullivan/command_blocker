@@ -1,12 +1,11 @@
 import * as THREE from 'three';
-import { landscapeData } from '../lib/landscape_data';
 
 export class Landscape {
   private worldHalfWidth: number;
   private worldHalfDepth: number;
   private cubeSize: number;
   private cubeHalfSize: number;
-  private data = landscapeData;
+  private data: number[] = [];
 
   constructor(private worldWidth: number, private worldDepth: number, cubeSize: number) {
     this.worldHalfWidth = worldWidth / 2;
@@ -15,23 +14,49 @@ export class Landscape {
     this.cubeHalfSize = cubeSize / 2;
   }
 
+  get WORLD_WIDTH(): number {
+    return this.worldWidth;
+  }
+
+  get WORLD_DEPTH(): number {
+    return this.worldDepth;
+  }
+
+  get CUBE_SIZE(): number {
+    return this.cubeSize;
+  }
+
+  private async generateHeight(): Promise<void> {
+    const data = [];
+    const { ImprovedNoise } = await import("three/examples/jsm/math/ImprovedNoise");
+    const perlin = new ImprovedNoise();
+    const size = this.worldWidth * this.worldDepth;
+    const z = Math.random() * this.cubeSize;
+
+    let quality = 2;
+
+    for (let j = 0; j < 4; j++) {
+      if (j === 0) for (let i = 0; i < size; i++) data[i] = 0;
+
+      for (let i = 0; i < size; i++) {
+        const x = i % this.worldWidth,
+          y = (i / this.worldWidth) | 0;
+        data[i] += perlin.noise(x / quality, y / quality, z) * quality;
+      }
+
+      quality *= 4;
+    }
+
+    this.data = data;
+  }
+
   public getY(x: number, z: number): number {
     return (this.data[x + z * this.worldWidth] * 0.25) | 0;
   }
 
-  public getMaxX(): number {
-    return this.worldWidth * this.cubeSize - this.cubeSize * 2;
-  }
-
-  public getMaxZ(): number {
-    return this.worldDepth * this.cubeSize - this.cubeSize * 2;
-  }
-
-  public getMinCameraY(x: number, z: number): number {
-    return this.getY(x, z) * (this.cubeSize * 2);
-  }
-
   public async getObject(): Promise<THREE.Object3D> {
+    await this.generateHeight();
+
     // minecraft blocks: sides
     const pxGeometry = new THREE.PlaneBufferGeometry(this.cubeSize, this.cubeSize);
     (pxGeometry.attributes.uv.array as Array<number>)[1] = 0.5;
@@ -77,19 +102,38 @@ export class Landscape {
           z * this.cubeSize - this.worldHalfDepth * this.cubeSize
         );
 
+        const px = this.getY(x + 1, z);
+        const nx = this.getY(x - 1, z);
+        const pz = this.getY(x, z + 1);
+        const nz = this.getY(x, z - 1);
+
         geometries.push(pyGeometry.clone().applyMatrix4(matrix));
-        geometries.push(pxGeometry.clone().applyMatrix4(matrix));
-        geometries.push(nxGeometry.clone().applyMatrix4(matrix));
-        geometries.push(pzGeometry.clone().applyMatrix4(matrix));
-        geometries.push(nzGeometry.clone().applyMatrix4(matrix));
+
+        if ((px !== y && px !== y + 1) || x === 0) {
+          geometries.push(pxGeometry.clone().applyMatrix4(matrix));
+        }
+
+        if ((nx !== y && nx !== y + 1) || x === this.worldWidth - 1) {
+          geometries.push(nxGeometry.clone().applyMatrix4(matrix));
+        }
+
+        if ((pz !== y && pz !== y + 1) || z === this.worldDepth - 1) {
+          geometries.push(pzGeometry.clone().applyMatrix4(matrix));
+        }
+
+        if ((nz !== y && nz !== y + 1) || z === 0) {
+          geometries.push(nzGeometry.clone().applyMatrix4(matrix));
+        }
       }
     }
 
-    const { BufferGeometryUtils } = await import('three/examples/jsm/utils/BufferGeometryUtils');
+    const { BufferGeometryUtils } = await import("three/examples/jsm/utils/BufferGeometryUtils");
     const geometry = BufferGeometryUtils.mergeBufferGeometries(geometries);
     geometry.computeBoundingSphere();
 
-    const texture = new THREE.TextureLoader().load('textures/minecraft/atlas.png');
+    const texture = new THREE.TextureLoader().load(
+      "textures/minecraft/atlas.png"
+    );
     texture.magFilter = THREE.NearestFilter;
 
     const mesh = new THREE.Mesh(
