@@ -21,7 +21,8 @@ export default function Home(): React.ReactElement {
       if (renderer) {
         renderer.destroy();
       }
-      gameContainer.current.removeChild(gameContainer.current.firstChild);
+      const canvas = gameContainer.current.firstChild;
+      gameContainer.current.removeChild(canvas);
     };
   });
 

@@ -1,23 +1,16 @@
 import * as THREE from 'three';
-import { AxisGridHelper } from './axis_grid_helper';
+import { makeAxisGrid } from './axis_grid_helper';
 import { CUBE_SIZE, WORLD_DEPTH, WORLD_WIDTH } from './render';
 import { Landscape } from './render/landscape';
 import { Yoda } from './render/yoda';
-import { GUI } from 'dat.gui';
-
-function makeAxisGrid(gui: GUI, node: THREE.Object3D, label: string, units: number) {
-  const helper = new AxisGridHelper(node, units);
-  gui.add(helper, 'visible').name(label);
-}
 
 export class Sandbox {
   private yoda = new Yoda();
   private objects: Array<THREE.Object3D>;
 
   constructor(scene: THREE.Scene) {
-
     // light
-    const sunLightColor = 0xFFFFFF;
+    const sunLightColor = 0xffffff;
     const sunLightIntensity = 3;
     const sunLight = new THREE.PointLight(sunLightColor, sunLightIntensity);
     scene.add(sunLight);
@@ -28,20 +21,24 @@ export class Sandbox {
     const celestialRadius = 1;
     const celestialWidthSegments = 6;
     const celestialHeightSegments = 6;
-    const celestialSphereGeometry = new THREE.SphereBufferGeometry(celestialRadius, celestialWidthSegments, celestialHeightSegments);
+    const celestialSphereGeometry = new THREE.SphereBufferGeometry(
+      celestialRadius,
+      celestialWidthSegments,
+      celestialHeightSegments
+    );
 
     const solarSystem = new THREE.Object3D();
     solarSystem.position.y = 10;
 
     // sun
-    const sunMaterial = new THREE.MeshPhongMaterial({ emissive: 0xFFFF00 });
+    const sunMaterial = new THREE.MeshPhongMaterial({ emissive: 0xffff00 });
     const sunMesh = new THREE.Mesh(celestialSphereGeometry, sunMaterial);
     sunMesh.scale.set(5, 5, 5);
 
     // earth
     const earthOrbit = new THREE.Object3D();
     earthOrbit.position.x = 10;
-    const earthMaterial = new THREE.MeshPhongMaterial({ color: 0x2233FF, emissive: 0x112244 });
+    const earthMaterial = new THREE.MeshPhongMaterial({ color: 0x2233ff, emissive: 0x112244 });
     const earthMesh = new THREE.Mesh(celestialSphereGeometry, earthMaterial);
 
     // moon

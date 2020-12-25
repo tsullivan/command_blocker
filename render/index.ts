@@ -26,12 +26,7 @@ export class Renderer {
     const cameraAspect = window.innerWidth / window.innerHeight;
     const cameraNear = 1;
     const cameraFar = 500;
-    const camera = new THREE.PerspectiveCamera(
-      cameraFov,
-      cameraAspect,
-      cameraNear,
-      cameraFar
-    );
+    const camera = new THREE.PerspectiveCamera(cameraFov, cameraAspect, cameraNear, cameraFar);
 
     // renderer
     renderer.setPixelRatio(window.devicePixelRatio);
