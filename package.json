@@ -8,7 +8,9 @@
     "start": "next start"
   },
   "dependencies": {
+    "@types/dat.gui": "0.7.6",
     "@typescript-eslint/parser": "4.11.0",
+    "dat.gui": "0.7.7",
     "next": "^10.0.0",
     "react": "17.0.1",
     "react-dom": "17.0.1",
