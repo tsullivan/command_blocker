@@ -2,38 +2,36 @@ import * as THREE from 'three';
 import type { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
 import { Sandbox } from '../sandbox';
 import { Landscape } from './landscape';
-import { Yoda } from './yoda';
 
 export type UseSceneFn = (useScene: (scene: THREE.Scene) => void) => void;
 
-const WORLD_WIDTH = 70;
-const WORLD_DEPTH = 50;
-const CUBE_SIZE = 4;
-
-const CAMERA_FOV = 60;
-const CAMERA_NEAR = 1;
-const CAMERA_FAR = 500;
-
-const cameraPosition = new THREE.Vector3(30, 44, 25);
+export const WORLD_WIDTH = 70;
+export const WORLD_DEPTH = 50;
+export const CUBE_SIZE = 4;
 
 export class Renderer {
   private clock = new THREE.Clock();
   private scene = new THREE.Scene();
   private renderer = new THREE.WebGLRenderer({ antialias: true });
-  private camera = new THREE.PerspectiveCamera(
-    CAMERA_FOV,
-    window.innerWidth / window.innerHeight, // Camera aspect
-    CAMERA_NEAR,
-    CAMERA_FAR
-  );
+  private camera: THREE.PerspectiveCamera;
+
   private landscape = new Landscape(WORLD_WIDTH, WORLD_DEPTH, CUBE_SIZE);
-  private yoda = new Yoda();
   private pressed: string[] = [];
   private controls?: OrbitControls;
   private sandbox: Sandbox;
 
   constructor(private container: Element) {
-    const { renderer, camera } = this;
+    const { renderer } = this;
+    const cameraFov = 60;
+    const cameraAspect = window.innerWidth / window.innerHeight;
+    const cameraNear = 1;
+    const cameraFar = 500;
+    const camera = new THREE.PerspectiveCamera(
+      cameraFov,
+      cameraAspect,
+      cameraNear,
+      cameraFar
+    );
 
     // renderer
     renderer.setPixelRatio(window.devicePixelRatio);
@@ -45,37 +43,27 @@ export class Renderer {
     this.scene.add(ambientLight);
 
     // camera
+    const cameraPosition = new THREE.Vector3(30, 44, 25);
     camera.position.x = cameraPosition.x;
     camera.position.y = cameraPosition.y;
     camera.position.z = cameraPosition.z;
 
     // add extras
-    this.sandbox = new Sandbox((cb) => {
-      cb(this.scene);
-    });
+    this.sandbox = new Sandbox(this.scene);
 
     // done
     this.addListeners();
 
     // set to state
-    this.scene.background = new THREE.Color(0xbfd1e2);
-    this.renderer = renderer;
     this.camera = camera;
+    this.scene.background = new THREE.Color(0xbfd1e2);
     this.animate = this.animate.bind(this);
   }
 
   private async init(): Promise<void> {
     // objects
     this.scene.add(await this.landscape.getObject());
-
-    if (!this.yoda.avatar) {
-      await this.yoda.createYoda();
-    }
-
-    const yodaAvatar = this.yoda.avatar;
-    yodaAvatar.position.y =
-      this.landscape.getY(WORLD_WIDTH / 2, WORLD_DEPTH / 2) * CUBE_SIZE + CUBE_SIZE / 2;
-    this.scene.add(yodaAvatar);
+    await this.sandbox.init(this.scene, this.landscape);
 
     const { OrbitControls } = await import('three/examples/jsm/controls/OrbitControls');
     const controls = new OrbitControls(this.camera, this.renderer.domElement);
@@ -97,21 +85,9 @@ export class Renderer {
   }
 
   private animate() {
-    if (this.yoda.avatar) {
-      this.camera.lookAt(this.yoda.avatar.position); // camera always looking at baby yoda
-
-      if (this.pressed['A']) {
-        this.yoda.avatar.lookAt(this.camera.position); // very weird
-      }
-    }
-
-    this.yoda.animate();
-    this.sandbox.animate(this.clock.getElapsedTime());
-
     this.containCamera();
-
+    this.sandbox.animate(this.camera, this.pressed, this.clock.getElapsedTime());
     this.renderer.render(this.scene, this.camera);
-
     requestAnimationFrame(this.animate);
   }
 
@@ -119,7 +95,7 @@ export class Renderer {
     this.clock.stop();
     this.controls.dispose();
     this.renderer.dispose();
-    this.yoda.destroy();
+    this.sandbox.destroy();
   }
 
   public useRenderer(): Renderer {

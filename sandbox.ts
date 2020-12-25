@@ -1,53 +1,112 @@
 import * as THREE from 'three';
-import type { UseSceneFn } from './render';
+import { AxisGridHelper } from './axis_grid_helper';
+import { CUBE_SIZE, WORLD_DEPTH, WORLD_WIDTH } from './render';
+import { Landscape } from './render/landscape';
+import { Yoda } from './render/yoda';
+import { GUI } from 'dat.gui';
 
-function makeInstance(geometry: THREE.BoxGeometry, color: number, z: number) {
-  const material = new THREE.MeshPhongMaterial({ color });
-  const cube = new THREE.Mesh(geometry, material);
-  cube.position.z = z;
-  cube.position.y = 1;
-  return cube;
+function makeAxisGrid(gui: GUI, node: THREE.Object3D, label: string, units: number) {
+  const helper = new AxisGridHelper(node, units);
+  gui.add(helper, 'visible').name(label);
 }
 
 export class Sandbox {
-  private meshes: Array<THREE.Mesh>;
+  private yoda = new Yoda();
+  private objects: Array<THREE.Object3D>;
 
-  constructor(cb: UseSceneFn) {
-    // learn webgl
-    const boxWidth = 1;
-    const boxHeight = 1;
-    const boxDepth = 1;
-    const geometry = new THREE.BoxGeometry(boxWidth, boxHeight, boxDepth);
-    const meshes = [
-      makeInstance(geometry, 0xa44a88, -8),
-      makeInstance(geometry, 0x4a48a8, -4),
-      makeInstance(geometry, 0xa4488a, -2),
-      makeInstance(geometry, 0x44aa88, 0),
-      makeInstance(geometry, 0x48a48a, 2),
-      makeInstance(geometry, 0x48a48a, 4),
-      makeInstance(geometry, 0xa8448a, 8),
-    ];
+  constructor(scene: THREE.Scene) {
 
-    const light = new THREE.DirectionalLight(0xFFFFFF, 1);
-    light.position.set(-1, 2, 4);
+    // light
+    const sunLightColor = 0xFFFFFF;
+    const sunLightIntensity = 3;
+    const sunLight = new THREE.PointLight(sunLightColor, sunLightIntensity);
+    scene.add(sunLight);
 
-    cb((scene: THREE.Scene) => {
-      scene.add(light);
+    const objects: THREE.Object3D[] = [];
 
-      meshes.forEach(mesh => {
-        scene.add(mesh);
-      });
+    // celestials
+    const celestialRadius = 1;
+    const celestialWidthSegments = 6;
+    const celestialHeightSegments = 6;
+    const celestialSphereGeometry = new THREE.SphereBufferGeometry(celestialRadius, celestialWidthSegments, celestialHeightSegments);
+
+    const solarSystem = new THREE.Object3D();
+    solarSystem.position.y = 10;
+
+    // sun
+    const sunMaterial = new THREE.MeshPhongMaterial({ emissive: 0xFFFF00 });
+    const sunMesh = new THREE.Mesh(celestialSphereGeometry, sunMaterial);
+    sunMesh.scale.set(5, 5, 5);
+
+    // earth
+    const earthOrbit = new THREE.Object3D();
+    earthOrbit.position.x = 10;
+    const earthMaterial = new THREE.MeshPhongMaterial({ color: 0x2233FF, emissive: 0x112244 });
+    const earthMesh = new THREE.Mesh(celestialSphereGeometry, earthMaterial);
+
+    // moon
+    const moonOrbit = new THREE.Object3D();
+    moonOrbit.position.x = 2;
+    const moonMaterial = new THREE.MeshPhongMaterial({ color: 0x888888, emissive: 0x222222 });
+    const moonMesh = new THREE.Mesh(celestialSphereGeometry, moonMaterial);
+    moonMesh.scale.set(0.5, 0.5, 0.5);
+
+    solarSystem.add(sunMesh);
+    solarSystem.add(earthOrbit);
+    earthOrbit.add(earthMesh);
+    earthOrbit.add(moonOrbit);
+    moonOrbit.add(moonMesh);
+
+    scene.add(solarSystem);
+
+    objects.push(solarSystem);
+    objects.push(sunMesh);
+    objects.push(earthOrbit);
+    objects.push(earthMesh);
+    objects.push(moonOrbit);
+    objects.push(moonMesh);
+
+    // helper
+    import('dat.gui').then((dat) => {
+      const gui = new dat.GUI();
+      makeAxisGrid(gui, solarSystem, 'solarSystem', 25);
+      makeAxisGrid(gui, earthOrbit, 'earthOrbit');
+      makeAxisGrid(gui, moonOrbit, 'moonOrbit');
     });
 
-    this.meshes = meshes;
+    this.objects = objects;
   }
 
-  public animate(time: number): void {
-    this.meshes.forEach((mesh, ndx) => {
+  public async init(scene: THREE.Scene, landscape: Landscape): Promise<void> {
+    if (!this.yoda.avatar) {
+      await this.yoda.createYoda();
+    }
+
+    const yodaAvatar = this.yoda.avatar;
+    yodaAvatar.position.y =
+      landscape.getY(WORLD_WIDTH / 2, WORLD_DEPTH / 2) * CUBE_SIZE + CUBE_SIZE / 2;
+    scene.add(yodaAvatar);
+  }
+
+  public animate(camera: THREE.Camera, pressed: string[], time: number): void {
+    if (this.yoda.avatar) {
+      camera.lookAt(this.yoda.avatar.position); // camera always looking at baby yoda
+
+      if (pressed['A']) {
+        this.yoda.avatar.lookAt(camera.position); // very weird
+      }
+    }
+
+    this.yoda.animate();
+    this.objects.forEach((mesh, ndx) => {
       const speed = 1 + ndx * 0.1;
       const rot = time * speed;
-      mesh.rotation.x = rot;
+      // mesh.rotation.x = rot;
       mesh.rotation.y = rot;
     });
+  }
+
+  public destroy(): void {
+    this.yoda.destroy();
   }
 }
