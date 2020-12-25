@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { landscapeData } from './landscape_data';
+import { landscapeData } from '../lib/landscape_data';
 
 export class Landscape {
   private worldHalfWidth: number;

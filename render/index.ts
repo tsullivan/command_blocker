@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import type { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
-import { Sandbox } from '../sandbox';
 import { Landscape } from './landscape';
+import { Sandbox } from './sandbox';
 
 export type UseSceneFn = (useScene: (scene: THREE.Scene) => void) => void;
 
@@ -58,7 +58,7 @@ export class Renderer {
   private async init(): Promise<void> {
     // objects
     this.scene.add(await this.landscape.getObject());
-    await this.sandbox.init(this.scene, this.landscape);
+    await this.sandbox.init(this.scene);
 
     const { OrbitControls } = await import('three/examples/jsm/controls/OrbitControls');
     const controls = new OrbitControls(this.camera, this.renderer.domElement);
@@ -68,20 +68,8 @@ export class Renderer {
     this.controls = controls;
   }
 
-  // TODO greater than negative absolute power of the position, less than absolute power of the position
-  // TODO and not closer than 3 feet away from Grogu The Child
-  private containCamera() {
-    this.camera.position.x = Math.min(this.camera.position.x, this.landscape.getMaxX());
-    this.camera.position.z = Math.min(this.camera.position.z, this.landscape.getMaxZ());
-    this.camera.position.y = Math.max(
-      this.camera.position.y,
-      this.landscape.getMinCameraY(this.camera.position.x, this.camera.position.z)
-    );
-  }
-
   private animate() {
-    this.containCamera();
-    this.sandbox.animate(this.camera, this.pressed, this.clock.getElapsedTime());
+    this.sandbox.animate(this.camera, this.clock.getElapsedTime());
     this.renderer.render(this.scene, this.camera);
     requestAnimationFrame(this.animate);
   }

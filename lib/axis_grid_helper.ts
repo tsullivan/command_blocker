@@ -1,4 +1,3 @@
-import type { GUI } from 'dat.gui';
 import * as THREE from 'three';
 
 export class AxisGridHelper {
@@ -35,7 +34,18 @@ export class AxisGridHelper {
   }
 }
 
-export function makeAxisGrid(gui: GUI, node: THREE.Object3D, label: string, units = 10): void {
-  const helper = new AxisGridHelper(node, units);
-  gui.add(helper, 'visible').name(label);
+interface AxisGridConfig {
+  node: THREE.Object3D; label: string; units?: number;
+}
+
+export function makeAxisGrids(axisGrids: AxisGridConfig[]): void {
+  import('dat.gui').then((dat) => {
+    const gui = new dat.GUI({ closed: true });
+
+    axisGrids.forEach(({ node, label, units = 10 }) => {
+      const helper = new AxisGridHelper(node, units);
+      gui.add(helper, 'visible').name(label);
+    });
+
+  });
 }

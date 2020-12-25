@@ -21,15 +21,14 @@ export default function Home(): React.ReactElement {
       if (renderer) {
         renderer.destroy();
       }
-      const canvas = gameContainer.current.firstChild;
-      gameContainer.current.removeChild(canvas);
+      gameContainer.current.removeChild(gameContainer.current.firstChild);
     };
   });
 
   return (
     <>
       <Head>
-        <title>Command Blocker</title>
+        <title>Command Blicker</title>
         <link rel="icon" href="/favicon.ico" />
       </Head>
 
