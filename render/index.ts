@@ -1,7 +1,47 @@
 import * as THREE from 'three';
 import type { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
 import { Landscape } from './landscape';
-import { Sandbox } from './sandbox';
+import { SpaceObjects } from './space';
+import { Yoda } from './yoda';
+
+class Sandbox {
+  public init: (scene: THREE.Scene) => Promise<void>;
+  public animate: (camera: THREE.Camera, time: number) => void;
+  public destroy: () => void;
+
+  constructor(scene: THREE.Scene, landscape: Landscape) {
+    const spaceObjects = new SpaceObjects(scene);
+    const yoda = new Yoda();
+
+    // Init
+    this.init = async (scene: THREE.Scene): Promise<void> => {
+      if (!yoda.avatar) {
+        await yoda.createYoda();
+      }
+
+      scene.add(yoda.avatar);
+    };
+
+    // Animate
+    this.animate = (camera: THREE.Camera, time: number) => {
+      yoda.animate(time);
+      spaceObjects.animate(time);
+
+      const floor = landscape.getY(landscape.WORLD_WIDTH / 2, landscape.WORLD_DEPTH / 2) * landscape.CUBE_SIZE +
+        landscape.CUBE_SIZE / 2;
+
+      yoda.avatar.position.y = floor;
+      spaceObjects.getRoot().position.y = floor + 20;
+
+    };
+
+    // Cleanup
+    this.destroy = (): void => {
+      yoda.destroy();
+    };
+  }
+}
+
 
 export type UseSceneFn = (useScene: (scene: THREE.Scene) => void) => void;
 
@@ -25,17 +65,13 @@ export class Renderer {
     const cameraFov = 60;
     const cameraAspect = window.innerWidth / window.innerHeight;
     const cameraNear = 1;
-    const cameraFar = 500;
+    const cameraFar = 2000;
     const camera = new THREE.PerspectiveCamera(cameraFov, cameraAspect, cameraNear, cameraFar);
 
     // renderer
     renderer.setPixelRatio(window.devicePixelRatio);
     renderer.setSize(window.innerWidth, window.innerHeight);
     this.container.appendChild(renderer.domElement);
-
-    // lighting
-    const ambientLight = new THREE.AmbientLight(0xcccccc);
-    this.scene.add(ambientLight);
 
     // camera
     const cameraPosition = new THREE.Vector3(30, 44, 25);
@@ -51,7 +87,7 @@ export class Renderer {
 
     // set to state
     this.camera = camera;
-    this.scene.background = new THREE.Color(0xbfd1e2);
+    this.scene.background = new THREE.Color(0x000000);
     this.animate = this.animate.bind(this);
   }
 

@@ -30,12 +30,14 @@ export class Yoda {
     });
   }
 
-  public animate(): void {
+  public animate(time: number): void {
     const delta = this.clock.getDelta();
 
     if (this.mixer !== undefined) {
       this.mixer.update(delta);
     }
+
+    this.avatar.rotation.y = time * 10;
   }
 
   public destroy(): void {

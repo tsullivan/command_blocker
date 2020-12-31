@@ -10,7 +10,7 @@ import React, { useEffect, useRef } from 'react';
 import { Renderer, useRenderer } from '../render';
 
 export default function Home(): React.ReactElement {
-  const gameContainer = useRef(null);
+  const gameContainer: React.RefObject<HTMLDivElement> = useRef(null);
 
   useEffect(() => {
     let renderer: Renderer;
@@ -21,7 +21,13 @@ export default function Home(): React.ReactElement {
       if (renderer) {
         renderer.destroy();
       }
-      gameContainer.current.removeChild(gameContainer.current.firstChild);
+      console.log('destroy app.');
+
+      if (gameContainer.current) {
+        while (gameContainer.current.firstChild) {
+          gameContainer.current.removeChild(gameContainer.current.firstChild);
+        }
+      }
     };
   });
 
